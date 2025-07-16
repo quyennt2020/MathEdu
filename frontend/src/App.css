@@ -1,0 +1,59 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.video-input {
+  margin-bottom: 20px;
+}
+
+.video-input input {
+  padding: 10px;
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.video-input button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.video-container {
+  margin-bottom: 20px;
+}
+
+.audio-container {
+  margin-top: 20px;
+}
+
+.flashcard-container {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.flashcard {
+  background-color: #61dafb;
+  color: #282c34;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 200px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,11 @@
+# YouTube transcript downloader
+youtube-transcript-api
+
+# Translation library
+google-cloud-translate
+
+# Text-to-speech library
+gTTS
+
+# Web framework for the backend
+Flask
