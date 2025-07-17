@@ -3,6 +3,8 @@ import './App.css';
 import Flashcard from './Flashcard';
 import axios from 'axios';
 import YouTube from 'react-youtube';
+import Login from './Login';
+import Signup from './Signup';
 
 function App() {
   const [videoId, setVideoId] = useState('dQw4w9WgXcQ');
@@ -11,17 +13,21 @@ function App() {
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState('');
   const [showAll, setShowAll] = useState(false);
-  const userId = 'user123'; // In a real app, you would get this from authentication
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [showLogin, setShowLogin] = useState(true);
+  const userId = 'user123'; // This should be replaced with the logged in user's ID
   const playerRef = useRef(null);
   const audioRef = useRef(null);
 
   useEffect(() => {
-    // Fetch flashcards when the component mounts
-    axios.get(`/api/flashcards?userId=${userId}`)
-      .then(response => {
-        setFlashcards(response.data);
-      });
-  }, [userId]);
+    if (loggedIn) {
+      // Fetch flashcards when the component mounts
+      axios.get(`/api/flashcards?userId=${userId}`)
+        .then(response => {
+          setFlashcards(response.data);
+        });
+    }
+  }, [loggedIn, userId]);
 
   const handleVideoIdChange = (event) => {
     setVideoId(event.target.value);
@@ -85,6 +91,32 @@ function App() {
       autoplay: 1,
     },
   };
+
+  if (!loggedIn) {
+    return (
+      <div className="App">
+        <header className="App-header">
+          {showLogin ? (
+            <div>
+              <Login />
+              <p>
+                Don't have an account?{' '}
+                <button onClick={() => setShowLogin(false)}>Sign up</button>
+              </p>
+            </div>
+          ) : (
+            <div>
+              <Signup />
+              <p>
+                Already have an account?{' '}
+                <button onClick={() => setShowLogin(true)}>Log in</button>
+              </p>
+            </div>
+          )}
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className="App">

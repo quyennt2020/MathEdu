@@ -1,14 +1,54 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
+from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flashcards.db'
+app.config['SECRET_KEY'] = 'supersecretkey'
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+def send_reminder_emails():
+    users_to_remind = User.query.join(Flashcard).filter(Flashcard.next_review <= datetime.utcnow()).all()
+    for user in users_to_remind:
+        message = Mail(
+            from_email='from_email@example.com',
+            to_emails=user.email,
+            subject='Time to review your flashcards!',
+            html_content='<strong>You have flashcards due for review. Log in to the app to review them!</strong>')
+        try:
+            sendgrid_client = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+            response = sendgrid_client.send(message)
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
+        except Exception as e:
+            print(e)
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=send_reminder_emails, trigger="interval", days=1)
+scheduler.start()
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 class Flashcard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(80), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     question = db.Column(db.String(200), nullable=False)
     answer = db.Column(db.String(200), nullable=False)
     next_review = db.Column(db.DateTime, default=datetime.utcnow)
@@ -124,6 +164,32 @@ def dub_video():
 
     return jsonify(transcript)
 
+
+@app.route('/api/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    new_user = User(
+        username=data['username'],
+        email=data['email'],
+        password=data['password'] # In a real app, you should hash the password
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data['username']).first()
+    if user and user.password == data['password']: # In a real app, you should check the hashed password
+        login_user(user)
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+
+@app.route('/api/logout')
+def logout():
+    logout_user()
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(debug=True)

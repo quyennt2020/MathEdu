@@ -10,3 +10,6 @@ gTTS
 # Web framework for the backend
 Flask
 Flask-SQLAlchemy
+Flask-Login
+APScheduler
+sendgrid
