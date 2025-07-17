@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Flashcard from './Flashcard';
 import axios from 'axios';
+import YouTube from 'react-youtube';
 
 function App() {
   const [videoId, setVideoId] = useState('dQw4w9WgXcQ');
-  const [dubbedAudio, setDubbedAudio] = useState(null);
+  const [dubbedTranscript, setDubbedTranscript] = useState([]);
   const [flashcards, setFlashcards] = useState([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState('');
   const [showAll, setShowAll] = useState(false);
   const userId = 'user123'; // In a real app, you would get this from authentication
+  const playerRef = useRef(null);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     // Fetch flashcards when the component mounts
@@ -25,15 +28,28 @@ function App() {
   };
 
   const handleDubbing = async () => {
-    // In a real application, you would make an API call to your backend here
-    // to get the dubbed audio. For now, we'll just simulate it.
-    // This will be replaced with a proper API call in a later step.
-    console.log(`Dubbing video with ID: ${videoId}`);
-    // Simulate a delay to mimic a network request
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    // In a real app, the backend would return the URL to the dubbed audio file.
-    // For now, we'll use a placeholder.
-    setDubbedAudio('/output.mp3');
+    axios.post('/api/dub', { videoId }).then(response => {
+      setDubbedTranscript(response.data);
+    });
+  };
+
+  const onPlayerReady = (event) => {
+    playerRef.current = event.target;
+  };
+
+  const onPlayerStateChange = (event) => {
+    if (event.data === YouTube.PlayerState.PLAYING) {
+      setInterval(() => {
+        const currentTime = playerRef.current.getCurrentTime();
+        const currentTranscriptLine = dubbedTranscript.find(
+          line => currentTime >= line.start && currentTime <= line.start + line.duration
+        );
+        if (currentTranscriptLine && audioRef.current) {
+          audioRef.current.src = currentTranscriptLine.audio_src;
+          audioRef.current.play();
+        }
+      }, 1000);
+    }
   };
 
   const handleCreateFlashcard = () => {
@@ -61,6 +77,15 @@ function App() {
     return flashcards.filter(f => new Date(f.next_review) <= now);
   };
 
+  const opts = {
+    height: '390',
+    width: '640',
+    playerVars: {
+      // https://developers.google.com/youtube/player_parameters
+      autoplay: 1,
+    },
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -75,25 +100,9 @@ function App() {
           <button onClick={handleDubbing}>Dub Video</button>
         </div>
         <div className="video-container">
-          <iframe
-            title="YouTube Video Player"
-            width="560"
-            height="315"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+          <YouTube videoId={videoId} opts={opts} onReady={onPlayerReady} onStateChange={onPlayerStateChange} />
         </div>
-        {dubbedAudio && (
-          <div className="audio-container">
-            <h2>Dubbed Audio</h2>
-            <audio controls>
-              <source src={dubbedAudio} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        )}
+        <audio ref={audioRef} />
         <div className="create-flashcard">
           <h2>Create New Flashcard</h2>
           <input

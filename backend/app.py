@@ -95,5 +95,35 @@ def review_flashcard():
 
     return jsonify(flashcard.to_dict())
 
+from scripts.download_transcript import download_transcript
+from scripts.translate_transcript import translate_text
+from scripts.generate_audio import generate_audio_segments
+import os
+
+@app.route('/api/dub', methods=['POST'])
+def dub_video():
+    data = request.get_json()
+    video_id = data.get('videoId')
+
+    # 1. Download transcript
+    transcript = download_transcript(video_id)
+    if not transcript:
+        return jsonify({'error': 'Could not download transcript'}), 500
+
+    # 2. Translate transcript
+    for line in transcript:
+        line['text'] = translate_text(line['text'])
+
+    # 3. Generate audio segments
+    audio_dir = os.path.join('static', 'audio', video_id)
+    audio_files = generate_audio_segments(transcript, output_dir=audio_dir)
+
+    # 4. Return transcript with audio filenames
+    for i, line in enumerate(transcript):
+        line['audio_src'] = os.path.join(audio_dir, f"segment_{i}.mp3")
+
+    return jsonify(transcript)
+
+
 if __name__ == '__main__':
     app.run(debug=True)

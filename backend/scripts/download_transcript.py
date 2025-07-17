@@ -9,10 +9,11 @@ def download_transcript(youtube_id):
 
     Returns:
         A list of dictionaries, where each dictionary represents a segment of the transcript.
+        Each dictionary includes the text, start time, and duration.
         Returns None if the transcript could not be downloaded.
     """
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(youtube_id)
+        transcript = YouTubeTranscriptApi.get_transcript(youtube_id, languages=['en'])
         return transcript
     except Exception as e:
         print(f"Error downloading transcript: {e}")
@@ -24,4 +25,4 @@ if __name__ == '__main__':
     transcript = download_transcript(video_id)
     if transcript:
         for line in transcript:
-            print(line['text'])
+            print(f"[{line['start']:.2f}s - {line['start'] + line['duration']:.2f}s] {line['text']}")
