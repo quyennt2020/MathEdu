@@ -6,33 +6,19 @@ import axios from 'axios';
 function App() {
   const [videoId, setVideoId] = useState('dQw4w9WgXcQ');
   const [dubbedAudio, setDubbedAudio] = useState(null);
-  const [flashcards, setFlashcards] = useState([
-    {
-      id: 1,
-      question: 'What is the capital of France?',
-      answer: 'Paris',
-    },
-    {
-      id: 2,
-      question: 'What is 2 + 2?',
-      answer: '4',
-    },
-    {
-      id: 3,
-      question: 'What is the powerhouse of the cell?',
-      answer: 'Mitochondria',
-    },
-  ]);
-  const [reviewSuggestions, setReviewSuggestions] = useState([]);
+  const [flashcards, setFlashcards] = useState([]);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [newAnswer, setNewAnswer] = useState('');
+  const [showAll, setShowAll] = useState(false);
   const userId = 'user123'; // In a real app, you would get this from authentication
 
   useEffect(() => {
-    // Fetch review suggestions when the component mounts
-    axios.get(`/api/review_suggestions?userId=${userId}`)
+    // Fetch flashcards when the component mounts
+    axios.get(`/api/flashcards?userId=${userId}`)
       .then(response => {
-        setReviewSuggestions(response.data.suggestions);
+        setFlashcards(response.data);
       });
-  }, []);
+  }, [userId]);
 
   const handleVideoIdChange = (event) => {
     setVideoId(event.target.value);
@@ -48,6 +34,31 @@ function App() {
     // In a real app, the backend would return the URL to the dubbed audio file.
     // For now, we'll use a placeholder.
     setDubbedAudio('/output.mp3');
+  };
+
+  const handleCreateFlashcard = () => {
+    axios.post('/api/flashcards', {
+      userId: userId,
+      question: newQuestion,
+      answer: newAnswer,
+    }).then(response => {
+      setFlashcards([...flashcards, response.data]);
+      setNewQuestion('');
+      setNewAnswer('');
+    });
+  };
+
+  const handleUpdateFlashcard = (updatedFlashcard) => {
+    setFlashcards(flashcards.map(f => f.id === updatedFlashcard.id ? updatedFlashcard : f));
+  };
+
+  const handleDeleteFlashcard = (flashcardId) => {
+    setFlashcards(flashcards.filter(f => f.id !== flashcardId));
+  };
+
+  const getDueFlashcards = () => {
+    const now = new Date();
+    return flashcards.filter(f => new Date(f.next_review) <= now);
   };
 
   return (
@@ -83,19 +94,38 @@ function App() {
             </audio>
           </div>
         )}
-        <div className="flashcard-container">
-          <h2>Flashcards</h2>
-          {flashcards.map((flashcard) => (
-            <Flashcard key={flashcard.id} concept={flashcard} userId={userId} />
-          ))}
+        <div className="create-flashcard">
+          <h2>Create New Flashcard</h2>
+          <input
+            type="text"
+            placeholder="Question"
+            value={newQuestion}
+            onChange={(e) => setNewQuestion(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Answer"
+            value={newAnswer}
+            onChange={(e) => setNewAnswer(e.target.value)}
+          />
+          <button onClick={handleCreateFlashcard}>Create</button>
         </div>
-        <div className="review-suggestions">
-          <h2>Review Suggestions</h2>
-          <ul>
-            {reviewSuggestions.map(suggestion => (
-              <li key={suggestion}>{`Card ID: ${suggestion}`}</li>
-            ))}
-          </ul>
+        <div className="flashcard-container">
+          <h2>
+            {showAll ? 'All Flashcards' : 'Due for Review'}
+            <button onClick={() => setShowAll(!showAll)}>
+              {showAll ? 'Show Due' : 'Show All'}
+            </button>
+          </h2>
+          {(showAll ? flashcards : getDueFlashcards()).map((flashcard) => (
+            <Flashcard
+              key={flashcard.id}
+              concept={flashcard}
+              userId={userId}
+              onUpdate={handleUpdateFlashcard}
+              onDelete={handleDeleteFlashcard}
+            />
+          ))}
         </div>
       </header>
     </div>

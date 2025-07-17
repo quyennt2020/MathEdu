@@ -9,3 +9,4 @@ gTTS
 
 # Web framework for the backend
 Flask
+Flask-SQLAlchemy
