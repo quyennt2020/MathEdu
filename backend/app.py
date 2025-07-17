@@ -36,15 +36,42 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=send_reminder_emails, trigger="interval", days=1)
 scheduler.start()
 
+from functools import wraps
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
+    role = db.Column(db.String(80), default='Creator', nullable=False) # Creator, Editor, Admin
+
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role != role:
+                return jsonify({'error': 'Unauthorized'}), 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    videos = db.relationship('Video', backref='course', lazy=True)
+
+class Video(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    youtube_id = db.Column(db.String(80), nullable=False)
+    status = db.Column(db.String(80), default='Draft', nullable=False) # Draft, In Review, Published
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
 
 class Flashcard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -190,6 +217,74 @@ def login():
 def logout():
     logout_user()
     return jsonify({'status': 'success'})
+
+@app.route('/api/courses', methods=['POST'])
+@role_required('Creator')
+def create_course():
+    data = request.get_json()
+    new_course = Course(
+        title=data['title'],
+        description=data.get('description'),
+        creator_id=current_user.id
+    )
+    db.session.add(new_course)
+    db.session.commit()
+    return jsonify(new_course.to_dict())
+
+@app.route('/api/courses/<int:course_id>', methods=['PUT'])
+@role_required('Creator')
+def update_course(course_id):
+    course = Course.query.get(course_id)
+    if not course or course.creator_id != current_user.id:
+        return jsonify({'error': 'Not found or unauthorized'}), 404
+
+    data = request.get_json()
+    course.title = data.get('title', course.title)
+    course.description = data.get('description', course.description)
+    db.session.commit()
+    return jsonify(course.to_dict())
+
+@app.route('/api/courses/<int:course_id>/videos', methods=['POST'])
+@role_required('Creator')
+def add_video_to_course(course_id):
+    course = Course.query.get(course_id)
+    if not course or course.creator_id != current_user.id:
+        return jsonify({'error': 'Not found or unauthorized'}), 404
+
+    data = request.get_json()
+    new_video = Video(
+        title=data['title'],
+        youtube_id=data['youtube_id'],
+        course_id=course.id
+    )
+    db.session.add(new_video)
+    db.session.commit()
+    return jsonify(new_video.to_dict())
+
+@app.route('/api/courses/<int:course_id>/submit', methods=['POST'])
+@role_required('Creator')
+def submit_course(course_id):
+    course = Course.query.get(course_id)
+    if not course or course.creator_id != current_user.id:
+        return jsonify({'error': 'Not found or unauthorized'}), 404
+
+    for video in course.videos:
+        video.status = 'In Review'
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+@app.route('/api/courses/<int:course_id>/approve', methods=['POST'])
+@role_required('Editor')
+def approve_course(course_id):
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Not found'}), 404
+
+    for video in course.videos:
+        video.status = 'Published'
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)

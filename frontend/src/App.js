@@ -5,6 +5,10 @@ import axios from 'axios';
 import YouTube from 'react-youtube';
 import Login from './Login';
 import Signup from './Signup';
+import CourseEditor from './CourseEditor';
+import ReviewDashboard from './ReviewDashboard';
+import CoursePlayer from './CoursePlayer';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
 function App() {
   const [videoId, setVideoId] = useState('dQw4w9WgXcQ');
@@ -119,57 +123,85 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>YouTube Video Dubber</h1>
-        <div className="video-input">
-          <input
-            type="text"
-            placeholder="Enter YouTube Video ID"
-            value={videoId}
-            onChange={handleVideoIdChange}
-          />
-          <button onClick={handleDubbing}>Dub Video</button>
-        </div>
-        <div className="video-container">
-          <YouTube videoId={videoId} opts={opts} onReady={onPlayerReady} onStateChange={onPlayerStateChange} />
-        </div>
-        <audio ref={audioRef} />
-        <div className="create-flashcard">
-          <h2>Create New Flashcard</h2>
-          <input
-            type="text"
-            placeholder="Question"
-            value={newQuestion}
-            onChange={(e) => setNewQuestion(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Answer"
-            value={newAnswer}
-            onChange={(e) => setNewAnswer(e.target.value)}
-          />
-          <button onClick={handleCreateFlashcard}>Create</button>
-        </div>
-        <div className="flashcard-container">
-          <h2>
-            {showAll ? 'All Flashcards' : 'Due for Review'}
-            <button onClick={() => setShowAll(!showAll)}>
-              {showAll ? 'Show Due' : 'Show All'}
-            </button>
-          </h2>
-          {(showAll ? flashcards : getDueFlashcards()).map((flashcard) => (
-            <Flashcard
-              key={flashcard.id}
-              concept={flashcard}
-              userId={userId}
-              onUpdate={handleUpdateFlashcard}
-              onDelete={handleDeleteFlashcard}
-            />
-          ))}
-        </div>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <header className="App-header">
+          <nav>
+            <ul>
+              <li>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+                <Link to="/courses">Course Editor</Link>
+              </li>
+              <li>
+                <Link to="/review">Review Dashboard</Link>
+              </li>
+              <li>
+                <Link to="/player">Course Player</Link>
+              </li>
+            </ul>
+          </nav>
+
+          <Routes>
+            <Route path="/courses" element={<CourseEditor />} />
+            <Route path="/review" element={<ReviewDashboard />} />
+            <Route path="/player" element={<CoursePlayer />} />
+            <Route path="/" element={
+              <div>
+                <h1>YouTube Video Dubber</h1>
+                <div className="video-input">
+                  <input
+                    type="text"
+                    placeholder="Enter YouTube Video ID"
+                    value={videoId}
+                    onChange={handleVideoIdChange}
+                  />
+                  <button onClick={handleDubbing}>Dub Video</button>
+                </div>
+                <div className="video-container">
+                  <YouTube videoId={videoId} opts={opts} onReady={onPlayerReady} onStateChange={onPlayerStateChange} />
+                </div>
+                <audio ref={audioRef} />
+                <div className="create-flashcard">
+                  <h2>Create New Flashcard</h2>
+                  <input
+                    type="text"
+                    placeholder="Question"
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Answer"
+                    value={newAnswer}
+                    onChange={(e) => setNewAnswer(e.target.value)}
+                  />
+                  <button onClick={handleCreateFlashcard}>Create</button>
+                </div>
+                <div className="flashcard-container">
+                  <h2>
+                    {showAll ? 'All Flashcards' : 'Due for Review'}
+                    <button onClick={() => setShowAll(!showAll)}>
+                      {showAll ? 'Show Due' : 'Show All'}
+                    </button>
+                  </h2>
+                  {(showAll ? flashcards : getDueFlashcards()).map((flashcard) => (
+                    <Flashcard
+                      key={flashcard.id}
+                      concept={flashcard}
+                      userId={userId}
+                      onUpdate={handleUpdateFlashcard}
+                      onDelete={handleDeleteFlashcard}
+                    />
+                  ))}
+                </div>
+              </div>
+            } />
+          </Routes>
+        </header>
+      </div>
+    </Router>
   );
 }
 
