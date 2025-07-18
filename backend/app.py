@@ -165,6 +165,7 @@ def review_flashcard():
 from scripts.download_transcript import download_transcript
 from scripts.translate_transcript import translate_text
 from scripts.generate_audio import generate_audio_segments
+from scripts.generate_flashcards import generate_flashcards_from_transcript
 import os
 
 @app.route('/api/dub', methods=['POST'])
@@ -285,6 +286,16 @@ def approve_course(course_id):
     db.session.commit()
     return jsonify({'status': 'success'})
 
+
+@app.route('/api/generate_flashcards', methods=['POST'])
+def auto_generate_flashcards():
+    data = request.get_json()
+    transcript = data.get('transcript')
+    if not transcript:
+        return jsonify({'error': 'Transcript not provided'}), 400
+
+    flashcards = generate_flashcards_from_transcript(transcript)
+    return jsonify(flashcards)
 
 if __name__ == '__main__':
     app.run(debug=True)

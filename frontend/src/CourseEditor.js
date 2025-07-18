@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import FlashcardReview from './FlashcardReview';
 
 function CourseEditor() {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
 
   useEffect(() => {
     // In a real app, you would fetch the user's courses
@@ -29,6 +31,14 @@ function CourseEditor() {
     items.splice(result.destination.index, 0, reorderedItem);
 
     setSelectedCourse({ ...selectedCourse, videos: items });
+  };
+
+  const handleGenerateFlashcards = (video) => {
+    axios.post('/api/generate_flashcards', {
+      transcript: video.transcript, // Assuming the transcript is available on the video object
+    }).then(response => {
+      setGeneratedFlashcards(response.data);
+    });
   };
 
   return (
@@ -60,6 +70,9 @@ function CourseEditor() {
                           {...provided.dragHandleProps}
                         >
                           {video.title}
+                          <button onClick={() => handleGenerateFlashcards(video)}>
+                            Auto-generate Flashcards
+                          </button>
                         </li>
                       )}
                     </Draggable>
@@ -70,6 +83,9 @@ function CourseEditor() {
             </Droppable>
           </DragDropContext>
         </div>
+      )}
+      {generatedFlashcards.length > 0 && (
+        <FlashcardReview generatedFlashcards={generatedFlashcards} />
       )}
     </div>
   );

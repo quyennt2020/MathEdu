@@ -13,3 +13,4 @@ Flask-SQLAlchemy
 Flask-Login
 APScheduler
 sendgrid
+spacy
