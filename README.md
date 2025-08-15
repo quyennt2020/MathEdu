@@ -30,6 +30,15 @@ The current MVP uses a mocked AI response, meaning it generates the same simple 
     pip install -r requirements.txt
     ```
 
+### Configuration
+
+1.  After installing the dependencies, create a new file named `.env` in the root directory of the project. You can use the `.env.example` file as a template.
+2.  Open the `.env` file and add your Google Gemini API key as follows:
+    ```
+    GOOGLE_API_KEY="YOUR_API_KEY_HERE"
+    ```
+3.  Replace `"YOUR_API_KEY_HERE"` with your actual API key. The application will not work without it.
+
 ## How to Run
 
 1.  Make sure you are in the root directory of the project.

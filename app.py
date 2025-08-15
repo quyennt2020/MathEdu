@@ -2,6 +2,19 @@ import os
 import uuid
 import pathlib
 from flask import Flask, request, jsonify, send_from_directory
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure the generative AI model
+try:
+    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+except KeyError:
+    # This error is raised if the GOOGLE_API_KEY is not set.
+    # We will handle this gracefully in the create_game endpoint.
+    pass
 
 app = Flask(__name__)
 
@@ -10,84 +23,85 @@ def serve_index():
     """Serves the main index.html page."""
     return send_from_directory('public', 'index.html')
 
+def clean_ai_response(text):
+    """
+    Removes markdown backticks and the 'javascript' keyword from the AI's response.
+    """
+    if text.strip().startswith("```javascript"):
+        text = text.strip()[11:] # Remove ```javascript
+        if text.strip().endswith("```"):
+            text = text.strip()[:-3] # Remove ```
+    return text.strip()
+
 @app.route('/api/v1/games', methods=['POST'])
 def create_game():
     """
-    Creates a new game session based on a user prompt.
+    Creates a new game session by calling the Gemini AI with a user prompt.
     """
-    # 1. Get data from request
+    # 1. Check for API Key
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return jsonify({"error": "GOOGLE_API_KEY is not set. Please configure it in your .env file."}), 500
+
+    # 2. Get data from request
     data = request.get_json()
     if not data or 'prompt' not in data:
         return jsonify({"error": "Invalid request, 'prompt' is required."}), 400
+    user_prompt = data['prompt']
 
-    # The prompt is not used in the MVP, but this would be where you'd pass it to the AI
-    # prompt = data['prompt']
-
-    # 2. Generate session ID and create directories
+    # 3. Generate session and paths
     session_id = f"session_{uuid.uuid4().hex[:8]}"
     session_dir = pathlib.Path('public/games') / session_id
     os.makedirs(session_dir, exist_ok=True)
 
-    # 3. Read the HTML template
+    # 4. Read the HTML template
     try:
         with open('templates/kaboom_template.html', 'r') as f:
             template_content = f.read()
     except FileNotFoundError:
-        return jsonify({"error": "Kaboom template 'templates/kaboom_template.html' not found."}), 500
+        return jsonify({"error": "Kaboom template not found."}), 500
 
-    # 4. Mock the AI call for the MVP
-    # This snippet creates a player that can move and jump on a platform.
-    # It uses the built-in "bean" sprite, so no external assets are needed.
-    mocked_ai_code = """
-    // Load the default sprite
-    loadBean();
+    # 5. Call the real AI
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-    // Add a player character
-    const player = add([
-        sprite("bean"),
-        pos(120, 80),
-        area(),
-        body(), // Make it a physical body that responds to gravity
-    ]);
+        # Construct the "Super Prompt"
+        super_prompt = f"""
+        You are an expert game developer specializing in the Kaboom.js framework.
+        Your task is to write the JavaScript code for a simple game based on the user's prompt.
 
-    // Add a ground platform
-    add([
-        rect(width(), 48),
-        pos(0, height() - 48),
-        outline(4),
-        area(),
-        solid(), // Make it solid so other objects can't pass through
-        color(127, 200, 255),
-    ]);
+        **Constraints:**
+        - The code must be self-contained and run within the Kaboom.js environment provided.
+        - DO NOT include any HTML, CSS, or markdown formatting (like ```javascript).
+        - ONLY respond with the raw JavaScript code for the game logic.
+        - Use only built-in Kaboom.js functions and assets (e.g., `loadBean()`, `rect()`, `pos()`, `onKeyDown()`). Do not try to load external assets.
+        - The game canvas is already initialized. Do not include `kaboom()` initialization code.
 
-    // Player movement controls
-    const SPEED = 320;
-    onKeyDown("left", () => {
-        player.move(-SPEED, 0);
-    });
+        **User's Game Idea:**
+        "{user_prompt}"
 
-    onKeyDown("right", () => {
-        player.move(SPEED, 0);
-    });
+        Now, write the JavaScript code for this game.
+        """
 
-    onKeyPress("space", () => {
-        // .isGrounded() is a Kaboom function that checks if the object is on a solid surface
-        if (player.isGrounded()) {
-            player.jump();
-        }
-    });
-    """
+        response = model.generate_content(super_prompt)
 
-    # 5. Inject the mocked code into the template
+        # Clean the response to get raw JS
+        ai_generated_code = clean_ai_response(response.text)
+
+    except Exception as e:
+        print(f"AI generation failed: {e}")
+        return jsonify({"error": f"Failed to generate game code from AI. Details: {str(e)}"}), 500
+
+    # 6. Inject the AI-generated code into the template
     placeholder = '// AI_GENERATED_CODE_WILL_BE_INSERTED_HERE'
-    game_code = template_content.replace(placeholder, mocked_ai_code)
+    game_code = template_content.replace(placeholder, ai_generated_code)
 
-    # 6. Save the new game file
+    # 7. Save the new game file
     output_path = session_dir / 'game.html'
     with open(output_path, 'w') as f:
         f.write(game_code)
 
-    # 7. Return the success response
+    # 8. Return the success response
     game_url = f"/games/{session_id}/game.html"
     return jsonify({
         'sessionId': session_id,
