@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Game Generator</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background-color: #f8f9fa; }
+        header { padding: 1rem; background: #fff; border-bottom: 1px solid #dee2e6; text-align: center; }
+        h1 { margin: 0; }
+        main { display: flex; flex: 1; overflow: hidden; }
+        .controls { width: 350px; padding: 1rem; border-right: 1px solid #dee2e6; background: #fff; display: flex; flex-direction: column; }
+        h2 { margin-top: 0; }
+        textarea { flex-grow: 1; margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; resize: none;}
+        button { padding: 0.75rem 1rem; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        button:hover { background-color: #0056b3; }
+        .sandbox { flex: 1; background-color: #e9ecef; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI Game Generator</h1>
+    </header>
+    <main>
+        <div class="controls">
+            <h2>Your Game Idea</h2>
+            <textarea id="prompt-input" placeholder="e.g., Make a game where a cat can jump on platforms using the arrow keys."></textarea>
+            <button id="create-btn">Create Game</button>
+        </div>
+        <div class="sandbox">
+            <iframe id="game-frame" title="Game Sandbox"></iframe>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>

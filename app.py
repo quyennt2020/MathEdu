@@ -6,8 +6,9 @@ from flask import Flask, request, jsonify, send_from_directory
 app = Flask(__name__)
 
 @app.route('/')
-def hello_world():
-    return 'Game Generation Server is running!'
+def serve_index():
+    """Serves the main index.html page."""
+    return send_from_directory('public', 'index.html')
 
 @app.route('/api/v1/games', methods=['POST'])
 def create_game():
@@ -93,13 +94,10 @@ def create_game():
         'gameUrl': game_url
     })
 
-@app.route('/games/<session_id>/<path:filename>')
-def serve_game(session_id, filename):
-    """
-    Serves the static files for a specific game session.
-    """
-    directory = pathlib.Path('public/games') / session_id
-    return send_from_directory(directory, filename)
+@app.route('/<path:path>')
+def serve_static_file(path):
+    """Serves static files from the 'public' directory."""
+    return send_from_directory('public', path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
