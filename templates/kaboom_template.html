@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kaboom Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <!-- Kaboom.js library from a CDN -->
+    <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
+
+    <script>
+        // Initialize Kaboom
+        const k = kaboom({
+            global: true,
+            fullscreen: true,
+            scale: 1,
+            debug: true, // Enable debug mode to see logs
+            background: [0, 0, 0, 1], // Black background
+        });
+
+        // --- Error Logging to Parent Window ---
+        // Capture console.error and post it to the parent window
+        const originalError = console.error;
+        console.error = function(...args) {
+            window.parent.postMessage({
+                type: 'game-error',
+                payload: args.map(arg => arg.toString()) // Convert all args to string for serialization
+            }, '*'); // Use a specific origin in production for security
+            originalError.apply(console, args);
+        };
+
+        // Capture uncaught exceptions
+        window.addEventListener('error', function(event) {
+            window.parent.postMessage({
+                type: 'game-error',
+                payload: [event.message, `at ${event.filename}:${event.lineno}:${event.colno}`]
+            }, '*');
+        });
+
+        // --- AI Generated Code Placeholder ---
+        // AI_GENERATED_CODE_WILL_BE_INSERTED_HERE
+    </script>
+</body>
+</html>
