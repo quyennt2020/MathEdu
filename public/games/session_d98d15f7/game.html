@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kaboom Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <!-- Kaboom.js library from a CDN -->
+    <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
+
+    <script>
+        // Initialize Kaboom
+        const k = kaboom({
+            global: true,
+            fullscreen: true,
+            scale: 1,
+            debug: true, // Enable debug mode to see logs
+            background: [0, 0, 0, 1], // Black background
+        });
+
+        // --- Error Logging to Parent Window ---
+        // Capture console.error and post it to the parent window
+        const originalError = console.error;
+        console.error = function(...args) {
+            window.parent.postMessage({
+                type: 'game-error',
+                payload: args.map(arg => arg.toString()) // Convert all args to string for serialization
+            }, '*'); // Use a specific origin in production for security
+            originalError.apply(console, args);
+        };
+
+        // Capture uncaught exceptions
+        window.addEventListener('error', function(event) {
+            window.parent.postMessage({
+                type: 'game-error',
+                payload: [event.message, `at ${event.filename}:${event.lineno}:${event.colno}`]
+            }, '*');
+        });
+
+        // --- AI Generated Code Placeholder ---
+        loadBean();
+
+const player = add([
+  sprite("bean"),
+  pos(width()/2, height() - 100),
+  area(),
+  body(),
+  {
+    jumpForce: 600,
+  },
+]);
+
+onKeyDown("space", () => {
+  if (player.grounded()) {
+    player.jump(player.jumpForce);
+  }
+});
+
+onKeyDown("left", () => {
+  player.move(-100,0);
+});
+
+onKeyDown("right", () => {
+  player.move(100,0);
+});
+
+
+gravity(300);
+
+//Simple ground check for better gameplay
+onUpdate(() => {
+  if (player.pos.y > height()-50){
+    player.pos.y = height()-50;
+    player.grounded()
+  }
+});
+
+// Add a simple ground
+add([
+  rect(width(), 50),
+  pos(0, height() - 50),
+  color(0, 1, 0), // Green ground
+  area(),
+  body(),
+]);
+
+
+//Game Over condition.  Should add a better game over screen later
+onUpdate(()=>{
+  if (player.pos.y > height()){
+    go("lose");
+  }
+});
+
+
+scene("lose", ()=>{
+    add([
+      text("Game Over"),
+      pos(width()/2, height()/2)
+    ])
+});
+    </script>
+</body>
+</html>
