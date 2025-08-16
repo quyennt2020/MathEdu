@@ -108,6 +108,79 @@ def create_game():
         'gameUrl': game_url
     })
 
+def clean_html_response(text):
+    """
+    Removes markdown backticks and the 'html' keyword from the AI's response.
+    """
+    if text.strip().startswith("```html"):
+        text = text.strip()[7:] # Remove ```html
+        if text.strip().endswith("```"):
+            text = text.strip()[:-3] # Remove ```
+    return text.strip()
+
+@app.route('/api/v1/games/<session_id>/refine', methods=['POST'])
+def refine_game(session_id):
+    """
+    Refines an existing game by sending its code and a new prompt to the AI.
+    """
+    # 1. Get request data
+    data = request.get_json()
+    if not data or 'prompt' not in data or 'code' not in data:
+        return jsonify({"error": "Invalid request, 'prompt' and 'code' are required."}), 400
+
+    user_prompt = data['prompt']
+    current_code = data['code']
+
+    # 2. Construct the "Refine" prompt for the AI
+    refine_prompt = f"""
+    You are an expert game developer who specializes in editing code for the Kaboom.js framework.
+    Your task is to modify the complete HTML source code of an existing game based on a user's request.
+
+    **User Request:**
+    "{user_prompt}"
+
+    **Current Game's Full HTML Code:**
+    ```html
+    {current_code}
+    ```
+
+    **Instructions:**
+    - Read the user's request and the provided HTML code carefully.
+    - Modify the JavaScript portion within the `<script>` tag to implement the user's request.
+    - **Crucially, respond with ONLY the complete, full, and updated HTML source code for the entire file.**
+    - Do not add any explanations, comments, or markdown formatting around the code. Just the raw HTML.
+    """
+
+    # 3. Call the AI
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(refine_prompt)
+
+        # Clean the response to get raw HTML
+        updated_code = clean_html_response(response.text)
+
+    except Exception as e:
+        print(f"AI refinement failed: {e}")
+        return jsonify({"error": f"Failed to refine game code with AI. Details: {str(e)}"}), 500
+
+    # 4. Overwrite the existing game file
+    try:
+        game_file_path = pathlib.Path('public/games') / session_id / 'game.html'
+
+        # Ensure the file exists before writing
+        if not game_file_path.is_file():
+            return jsonify({"error": "Game session file not found."}), 404
+
+        with open(game_file_path, 'w') as f:
+            f.write(updated_code)
+    except Exception as e:
+        print(f"File writing failed: {e}")
+        return jsonify({"error": f"Failed to save refined game file. Details: {str(e)}"}), 500
+
+    # 5. Return success
+    return jsonify({"message": "Game refined successfully."})
+
+
 @app.route('/<path:path>')
 def serve_static_file(path):
     """Serves static files from the 'public' directory."""

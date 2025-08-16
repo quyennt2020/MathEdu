@@ -27,6 +27,13 @@
             <h2>Your Game Idea</h2>
             <textarea id="prompt-input" placeholder="e.g., Make a game where a cat can jump on platforms using the arrow keys."></textarea>
             <button id="create-btn">Create Game</button>
+
+            <div id="refine-controls" style="display: none; margin-top: 2rem; flex-grow: 1; flex-direction: column;">
+                <hr style="margin: 2rem 0;">
+                <h2>Refine Your Game</h2>
+                <textarea id="refine-prompt-input" placeholder="e.g., Make the player jump higher" style="flex-grow: 1; margin-bottom: 1rem;"></textarea>
+                <button id="refine-btn" disabled>Refine Game</button>
+            </div>
         </div>
         <div class="sandbox">
             <iframe id="game-frame" title="Game Sandbox"></iframe>

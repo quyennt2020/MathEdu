@@ -56,10 +56,33 @@ def main():
             # Give the game a second to draw something
             time.sleep(2)
 
-            # Take a screenshot of the game iframe
-            page.locator("#game-frame").screenshot(path="game_screenshot.png")
+            # Take a screenshot of the initial game
+            initial_screenshot_path = "initial_game.png"
+            page.locator("#game-frame").screenshot(path=initial_screenshot_path)
+            print(f"Screenshot '{initial_screenshot_path}' created successfully.")
 
-            print("Screenshot 'game_screenshot.png' created successfully.")
+            # --- Step 2: Refine the game ---
+            print("\nTesting the refinement loop...")
+            refine_prompt = "Make the player character a red square instead of a bean."
+            print(f"Refining with prompt: '{refine_prompt}'")
+
+            page.locator("#refine-prompt-input").fill(refine_prompt)
+            page.locator("#refine-btn").click()
+
+            # Wait for the iframe to reload after refinement
+            # We can wait for the load state of the frame itself
+            game_frame_locator.locator("canvas").wait_for(state="detached", timeout=60000)
+            expect(game_frame_locator.locator("canvas")).to_be_visible(timeout=60000)
+
+            print("Game refined and reloaded. Taking final screenshot...")
+
+            # Give it a moment to render the change
+            time.sleep(2)
+
+            # Take a screenshot of the refined game
+            refined_screenshot_path = "refined_game.png"
+            page.locator("#game-frame").screenshot(path=refined_screenshot_path)
+            print(f"Screenshot '{refined_screenshot_path}' created successfully.")
 
             browser.close()
 
